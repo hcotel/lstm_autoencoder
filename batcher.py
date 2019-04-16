@@ -56,13 +56,10 @@ if __name__ == '__main__':
         s_list = list(next(gen) for _ in range(batcher.batch_size))
         for s in s_list:
             encoder_2d = batcher.embedding.get_embedding_matrix_sentence(batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.add_tokens_to_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s)))))
-            print(encoder_2d.shape)
             encoder_2d = encoder_2d.reshape(1,batcher.preprocess.padding_size, batcher.embedding.embedding_size)
-            print(encoder_2d.shape)
+
             #decoder_array = np.array(batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.decoder_output_check_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s)))), np.int32)
             encoder_3d = np.concatenate((encoder_3d, encoder_2d))
             #decoder_matrix = np.vstack((decoder_matrix, decoder_array))
-        print("Encoder Matrix:")
         print(encoder_3d)
-        print("Decoder Matrix:")
-        print(decoder_matrix)
+

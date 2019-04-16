@@ -12,6 +12,7 @@ from string import punctuation
 
 import io
 import re
+import time
 
 import hyperparameter as hp
 
@@ -71,6 +72,7 @@ class Preprocess():
         pass
 
     def create_dict_from_data(self, path):
+        st = time.time()
         for special_token in [UNKNOWN_TOKEN, PAD_TOKEN, SENTENCE_END, START_DECODING, STOP_DECODING]:
             self.vocab.append(special_token)
         corpus_vocab = Counter()
@@ -82,6 +84,8 @@ class Preprocess():
                             self.remove_stopwords(self.remove_punctuations(self.remove_digits(textfile.read()))))
         vocab = [word for word, occurrences in corpus_vocab.items() if occurrences >= self.freq_thresh]
         self.vocab.extend(vocab)
+        et = time.time() - st
+        print(f"Vocabulary is created in {et} secs.")
         print(f"Vocabulary size: {len(self.vocab)}")
 
     def convert_word_list_to_indexes(self, word_list):
