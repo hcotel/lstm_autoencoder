@@ -14,14 +14,19 @@ import numpy as np
 from datetime import datetime
 
 import hyperparameter as hp
+from embedding import Embedding
+from lstm_autoencoder import Graph
 from preprocess import Preprocess
 
 
 class Batcher():
     def __init__(self):
-        self.pp = Preprocess()
+        self.preprocess = Preprocess()
+        self.embedding = Embedding(self.preprocess.vocab)
         self.batch_size = hp.BATCH_SIZE
         self.input_path = hp.INPUT_PATH
+        self.graph = Graph(self.batch_size, self.preprocess.padding_size, self.embedding.embedding_size)
+        self.file_list = os.listdir('data/input')
         st = datetime.now()
         i=1
         # for root, dirs, files in os.walk('data/42bin_haber/news'):
@@ -32,27 +37,26 @@ class Batcher():
         elapsed_time = datetime.now() - st
         print(f"Files copied in {elapsed_time} secs.")
 
-
-    def file_generator(self):
-        yield random.choice(os.listdir("data/input"))
-
     def batch(self):
-        for filename in next(self.file_generator):
-            with io.open(f'data/input/{filename}', 'r', encoding='utf8') as textfile:  # !TODO Proper sentence read
-                sentences = self.pp.split_into_sentences(textfile.read())
+        while True:
+            filename = random.choice(self.file_list)
+            with io.open(f'data/input/{filename}', 'r', encoding='utf8') as textfile:
+                readcontent = textfile.read().replace(f'\n',f'.\n',1)
+                self.file_list.remove(filename)
+                sentences = self.preprocess.split_into_sentences(readcontent)
                 for sentence in sentences:
                     yield sentence
 
 if __name__ == '__main__':
-    b = Batcher()
-    gen = b.batch()
-    encoder_matrix = np.empty(shape=(0,b.pp.padding_size),dtype=np.int32)
-    decoder_matrix = np.empty(shape=(0, b.pp.padding_size+2), dtype=np.int32)
+    batcher = Batcher()
+    gen = batcher.batch()
+    encoder_matrix = np.empty(shape=(0, batcher.preprocess.padding_size), dtype=np.int32)
+    decoder_matrix = np.empty(shape=(0, batcher.preprocess.padding_size + 2), dtype=np.int32)
     while True:
-        s_list = list(next(gen) for _ in range(b.batch_size))
+        s_list = list(next(gen) for _ in range(batcher.batch_size))
         for s in s_list:
-            encoder_array = np.array(b.pp.convert_word_list_to_indexes(b.pp.add_tokens_to_sentence(b.pp.remove_punctuations(b.pp.remove_digits(s)))), np.int32)
-            decoder_array = np.array(b.pp.convert_word_list_to_indexes(b.pp.decoder_output_check_sentence(b.pp.remove_punctuations(b.pp.remove_digits(s)))), np.int32)
+            encoder_array = np.array(batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.add_tokens_to_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s)))), np.int32)
+            decoder_array = np.array(batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.decoder_output_check_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s)))), np.int32)
             encoder_matrix = np.vstack((encoder_matrix, encoder_array))
             decoder_matrix = np.vstack((decoder_matrix, decoder_array))
         print("Encoder Matrix:")

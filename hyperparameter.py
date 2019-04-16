@@ -7,7 +7,7 @@ __email__ = "info@vircongroup.com"
 __status__ = "Development"
 
 INPUT_PATH = 'data/test'
-BATCH_SIZE = 1000
+BATCH_SIZE = 20
 VOCAB_FREQ_THRESHOLD = 1
 PADDING_ALGORITHM = 'max_length'       #max_length or weighted_sum
 WEIGHTED_SOME_COEFFICIENT = 0.8

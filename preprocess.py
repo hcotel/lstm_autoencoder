@@ -90,6 +90,19 @@ class Preprocess():
             indexes.append(self.word_to_index(word))
         return indexes
 
+    def findOccurrences(self, s, ch):
+        return [i for i, letter in enumerate(s) if letter == ch]
+
+    def unify_numbers(self, text):
+        a = self.findOccurrences(text, ".")
+        for i in a:
+            if 0 < i < len(text) - 1:
+                if text[i + 1].isnumeric() or text[i - 1].isnumeric():
+                    t = list(text)
+                    t[i] = ""
+                    text = "".join(t)
+        return text
+
     def calculate_padding_size(self, path, c=0.8, n=10, algorithm='max_length'):
         sentence_lengths = Counter()
         for root, dirs, files in os.walk(path):
@@ -150,10 +163,10 @@ class Preprocess():
             decoder_output_check.append(STOP_DECODING)
             return decoder_output_check
 
-    @staticmethod
-    def split_into_sentences(text):
+    def split_into_sentences(self,text):
         text = " " + text + "  "
         text = text.replace("\n", " ")
+        text = self.unify_numbers(text)
         text = re.sub(websites, "<prd>\\1", text)
         text = re.sub("\s" + alphabets + "[.] ", " \\1<prd> ", text)
         text = re.sub(alphabets + "[.]" + alphabets + "[.]" + alphabets + "[.]", "\\1<prd>\\2<prd>\\3<prd>", text)
