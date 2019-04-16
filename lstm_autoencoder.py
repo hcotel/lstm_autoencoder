@@ -9,6 +9,11 @@ __status__ = "Development"
 import tensorflow as tf
 
 
+
+#tf.nn.embedding_lookup
+#tf.gradients
+#tf.trainable_variables
+#optimizer apply gradient
 class Graph():
     def __init__(self, batch_size, padding_size, embedding_size):
         self.batch_size = batch_size
