@@ -1,11 +1,3 @@
-__author__ = "Huseyin Cotel"
-__copyright__ = "Copyright 2018"
-__credits__ = ["huseyincot"]
-__license__ = "GPL"
-__version__ = "1.0.1"
-__email__ = "info@vircongroup.com"
-__status__ = "Development"
-
 import numpy as np
 import time
 from gensim.models import KeyedVectors
@@ -22,7 +14,7 @@ class Embedding():
         st = time.time()
         self.word_vectors = KeyedVectors.load_word2vec_format('utils/word2vec_model', binary=True)
         self.embedding_size = self.word_vectors.wv.vector_size
-        print(f"Word2vec load in {time.time() - st} secs.")
+        print(f"Word2vec load in {round((time.time() - st),2)} secs.")
         self.embedding_list = np.empty(shape=(0,self.embedding_size))
         self.form_embedding_list(vocab)
 

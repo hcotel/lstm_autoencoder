@@ -1,11 +1,3 @@
-__author__ = "Huseyin Cotel"
-__copyright__ = "Copyright 2018"
-__credits__ = ["huseyincot"]
-__license__ = "GPL"
-__version__ = "1.0.1"
-__email__ = "info@vircongroup.com"
-__status__ = "Development"
-
 import os
 import random
 
@@ -26,7 +18,7 @@ class Batcher():
         self.batch_size = hp.BATCH_SIZE
         self.input_path = hp.INPUT_PATH
         self.graph = Graph(self.batch_size, self.preprocess.padding_size, self.embedding.embedding_size)
-        self.file_list = os.listdir('data/input')
+        self.file_list = os.listdir('data/test')
         st = datetime.now()
         i=1
         # for root, dirs, files in os.walk('data/42bin_haber/news'):
@@ -40,7 +32,7 @@ class Batcher():
     def batch(self):
         while True:
             filename = random.choice(self.file_list)
-            with io.open(f'data/input/{filename}', 'r', encoding='utf8') as textfile:
+            with io.open(f'data/test/{filename}', 'r', encoding='utf8') as textfile:
                 readcontent = textfile.read().replace(f'\n',f'.\n',1)
                 self.file_list.remove(filename)
                 sentences = self.preprocess.split_into_sentences(readcontent)
@@ -48,6 +40,12 @@ class Batcher():
                     yield sentence
 
 if __name__ == '__main__':
+    print(f"Batch size: {hp.BATCH_SIZE}")
+    print(f"Padding Algorithm: {hp.PADDING_ALGORITHM}")
+    print(f"Vocabulary Freq Threshold: {hp.VOCAB_FREQ_THRESHOLD}")
+    print(f"Use Self Vocabulary: {hp.SELF_VOCAB}")
+    print(f"Remove Stopwords: {hp.REMOVE_STOPWORDS}")
+    print(f"Use Self Embedding: {hp.SELF_EMBEDDING}")
     batcher = Batcher()
     gen = batcher.batch()
     encoder_3d = np.empty(shape=(0, batcher.preprocess.padding_size, batcher.embedding.embedding_size), dtype=np.int32)

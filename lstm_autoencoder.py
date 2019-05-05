@@ -1,14 +1,4 @@
-__author__ = "Huseyin Cotel"
-__copyright__ = "Copyright 2018"
-__credits__ = ["huseyincot"]
-__license__ = "GPL"
-__version__ = "1.0.1"
-__email__ = "info@vircongroup.com"
-__status__ = "Development"
-
 import tensorflow as tf
-
-
 
 #tf.nn.embedding_lookup
 #tf.gradients

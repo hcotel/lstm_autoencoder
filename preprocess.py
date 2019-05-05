@@ -1,11 +1,3 @@
-__author__ = "Huseyin Cotel"
-__copyright__ = "Copyright 2018"
-__credits__ = ["huseyincot"]
-__license__ = "GPL"
-__version__ = "1.0.1"
-__email__ = "info@vircongroup.com"
-__status__ = "Development"
-
 import os
 from collections import Counter
 from string import punctuation
@@ -24,18 +16,21 @@ UNKNOWN_TOKEN = '[UNK]'  # This has a vocab id, which is used to represent out-o
 START_DECODING = '[START]'  # This has a vocab id, which is used at the start of every decoder input sequence
 STOP_DECODING = '[STOP]'  # This has a vocab id, which is used at the end of untruncated target sequences
 
-alphabets= "([A-Za-z])"
+alphabets = "([A-Za-z])"
 acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
 websites = "[.](com|net|org|io|gov)"
 
 class Preprocess():
     def __init__(self):
-        self.vocab = []
+
         self.freq_thresh = hp.VOCAB_FREQ_THRESHOLD
-        self.create_dict_from_data(hp.INPUT_PATH)
+
         self.padding_size = self.calculate_padding_size(hp.INPUT_PATH, hp.WEIGHTED_SOME_COEFFICIENT,
                                                         hp.WEIGHTED_SOME_NMOST, hp.PADDING_ALGORITHM)
-
+        if hp.SELF_VOCAB:
+            self.create_dict_from_data(hp.INPUT_PATH)
+        else:
+            self.create_dict_from_existing_dict()
     def word_to_index(self, word):
         return self.vocab.index(word)
 
@@ -72,20 +67,41 @@ class Preprocess():
         pass
 
     def create_dict_from_data(self, path):
+        self.vocab = []
         st = time.time()
         for special_token in [UNKNOWN_TOKEN, PAD_TOKEN, SENTENCE_END, START_DECODING, STOP_DECODING]:
             self.vocab.append(special_token)
         corpus_vocab = Counter()
         for root, dirs, files in os.walk(path):
             for file in files:
-                if file.endswith(".txt"):  # ! TODO Generalize for file formats
+                if file.endswith(".txt"):
                     with io.open(os.path.join(root, file), 'r', encoding='utf8') as textfile:
-                        corpus_vocab += Counter(
-                            self.remove_stopwords(self.remove_punctuations(self.remove_digits(textfile.read()))))
+                        if hp.REMOVE_STOPWORDS:
+                            corpus_vocab += Counter(
+                                self.remove_stopwords(self.remove_punctuations(self.remove_digits(textfile.read()))))
+                        else:
+                            corpus_vocab += Counter(self.remove_punctuations(self.remove_digits(textfile.read())).split(' '))
         vocab = [word for word, occurrences in corpus_vocab.items() if occurrences >= self.freq_thresh]
         self.vocab.extend(vocab)
         et = time.time() - st
-        print(f"Vocabulary is created in {et} secs.")
+        print(f"Vocabulary is created in {round(et,2)} secs.")
+        print(f"Vocabulary size: {len(self.vocab)}")
+
+    def create_dict_from_existing_dict(self):
+        self.vocab = []
+        st = time.time()
+        with io.open('utils/stopwords.txt', 'r', encoding='utf8') as file:
+            stopwords = file.read().splitlines()
+        for special_token in [UNKNOWN_TOKEN, PAD_TOKEN, SENTENCE_END, START_DECODING, STOP_DECODING]:
+            self.vocab.append(special_token)
+        with io.open('utils/vocab.txt', 'r', encoding='utf8') as vocabfile:
+            content = vocabfile.readlines()
+        vocab = [line.strip().split(' ')[0] for line in content if int(line.strip().split(' ')[1]) >= self.freq_thresh]
+        if hp.REMOVE_STOPWORDS:
+            vocab = [item for item in vocab if item not in stopwords]
+        self.vocab.extend(vocab)
+        et = time.time() - st
+        print(f"Vocabulary is created in {round(et,2)} secs.")
         print(f"Vocabulary size: {len(self.vocab)}")
 
     def convert_word_list_to_indexes(self, word_list):
@@ -111,10 +127,13 @@ class Preprocess():
         sentence_lengths = Counter()
         for root, dirs, files in os.walk(path):
             for file in files:
-                if file.endswith(".txt"):  # ! TODO Generalize for file formats
+                if file.endswith(".txt"):
                     with io.open(os.path.join(root, file), 'r', encoding='utf8') as textfile:
                         sentences = [x.strip() for x in textfile]
-                        sentence_lengths += Counter(len(self.remove_stopwords(x)) for x in sentences if x)
+                        if hp.REMOVE_STOPWORDS:
+                            sentence_lengths += Counter(len(self.remove_stopwords(x)) for x in sentences if x)
+                        else:
+                            sentence_lengths += Counter(len(x.split(' ')) for x in sentences if x)
         if algorithm == 'max_length':
             print(f"Padding size: {max(sentence_lengths.keys())}")
             return max(sentence_lengths.keys())
