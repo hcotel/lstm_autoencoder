@@ -31,13 +31,16 @@ class Batcher():
 
     def batch(self):
         while True:
-            filename = random.choice(self.file_list)
-            with io.open(f'data/test/{filename}', 'r', encoding='utf8') as textfile:
-                readcontent = textfile.read().replace(f'\n',f'.\n',1)
-                self.file_list.remove(filename)
-                sentences = self.preprocess.split_into_sentences(readcontent)
-                for sentence in sentences:
-                    yield sentence
+            if self.file_list:
+                filename = random.choice(self.file_list)
+                with io.open(f'data/test/{filename}', 'r', encoding='utf8') as textfile:
+                    readcontent = textfile.read().replace(f'\n',f'.\n',1)
+                    self.file_list.remove(filename)
+                    sentences = self.preprocess.split_into_sentences(readcontent)
+                    for sentence in sentences:
+                        yield sentence
+            else:
+                exit(1)
 
 if __name__ == '__main__':
     print(f"Batch size: {hp.BATCH_SIZE}")
