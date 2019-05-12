@@ -100,9 +100,10 @@ class Preprocess():
         if hp.REMOVE_STOPWORDS:
             vocab = [item for item in vocab if item not in stopwords]
         self.vocab.extend(vocab)
+        self.vocab_size = len(self.vocab)
         et = time.time() - st
         print(f"Vocabulary is created in {round(et,2)} secs.")
-        print(f"Vocabulary size: {len(self.vocab)}")
+        print(f"Vocabulary size: {self.vocab_size}")
 
     def convert_word_list_to_indexes(self, word_list):
         indexes = []

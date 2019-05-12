@@ -12,7 +12,7 @@ STOP_DECODING = '[STOP]'
 class Embedding():
     def __init__(self, vocab):
         st = time.time()
-        self.word_vectors = KeyedVectors.load_word2vec_format('utils/word2vec_model', binary=False, encoding='utf8', unicode_errors='ignore')
+        self.word_vectors = KeyedVectors.load_word2vec_format('utils/word2vec_model', binary=True, unicode_errors='ignore')
         self.embedding_size = self.word_vectors.wv.vector_size
         print(f"Word2vec load in {round((time.time() - st),2)} secs.")
         self.embedding_list = np.empty(shape=(0,self.embedding_size))
