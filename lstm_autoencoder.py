@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.rnn import BasicLSTMCell
-
+from tensorflow.contrib.rnn import LSTMCell
 #tf.nn.embedding_lookup
 #tf.gradients
 #tf.trainable_variables
@@ -49,27 +49,18 @@ class LSTMAutoEncoder():
         self.sess.run(tf.global_variables_initializer())
 
     def create_placeholders(self):
-        self.input = tf.placeholder(shape=[self.batch_size, self.padding_size], dtype=tf.int32, name='input')
+        self.input = tf.placeholder(shape=[self.batch_size, self.padding_size], dtype=tf.int32, name='input')    #(32,10)
         #self.output = tf.placeholder(shape=[self.batch_size, self.padding_size], dtype=tf.int32, name='output')
 
     def create_graph(self):
-        e = encoder_lstm = LSTMCell(self.hidden_size, self.concat_size)
-        d = decoder_lstm = LSTMCell(self.hidden_size, self.concat_size)
-        self.embeddings = tf.Variable(tf.random_normal([self.vocab_size, self.embedding_size]))
-        for slice in self.input:
-            embedded_input = tf.nn.embedding_lookup(self.embeddings, slice, name='Embedding Layer')
-            h_prev_encoder = tf.Variable(tf.zeros([self.padding_size, self.hidden_size]))
-            z = np.hstack([embedded_input, h_prev_encoder])  # Z (10,384)
+        initializer = tf.glorot_normal_initializer()
+        self.encoder_cell = LSTMCell(self.hidden_size, initializer=initializer)                       #hidden_size=256
+        self.decoder_cell = LSTMCell(self.hidden_size, initializer=initializer)
+        self.embeddings = tf.Variable(tf.random_normal([self.vocab_size, self.embedding_size]))     #(300,128)
+        embedded_input = tf.nn.embedding_lookup(self.embeddings, tf.unstack, name='Embedding Layer')     #(1,10,128)
+        embedded_input = tf.reshape(embedded_input, [-1, 1, self.embedding_size])
+        encoded, _ = tf.contrib.rnn.static_rnn(self.encoder_cell, tf.unstack(embedded_input), dtype=tf.float32)
 
-            ft = tf.sigmoid(tf.matmul(e.Wf, z) + e.bf)  # (256,1)
-            it = tf.sigmoid(tf.matmul(e.Wi, z) + e.bi)  # (256,1)
-            ct = tf.tanh(tf.matmul(e.Wc, z) + e.bc)  # (256,1)
-            ot = tf.sigmoid(tf.matmul(e.Wo, z) + e.bi)  # (256,1)
-
-            cell_state = tf.add(tf.multiply(prev_cell_st, ft), tf.multiply(it, ct))
-            hidden_state = tf.multiply(ot, tf.tanh(cell_state))
-            prev_cell_st = cell_state
-            prev_hidden_st = hidden_state
 
     def run_graph(self, batch):
         self.feed_dict[self.input] = batch
