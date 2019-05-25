@@ -19,8 +19,8 @@ class Batcher():
         self.batch_size = hp.BATCH_SIZE
         self.input_path = hp.INPUT_PATH
         self.embedding_size = hp.SELF_EMBEDDING_SIZE
-        self.graph = LSTMAutoEncoder(self.batch_size, self.preprocess.padding_size, self.embedding_size, self.preprocess.vocab_size)
-        self.file_list = os.listdir('data/test')
+        self.ae = LSTMAutoEncoder(self.batch_size, self.preprocess.padding_size, self.embedding_size, self.preprocess.vocab_size)
+        self.file_list = os.listdir(self.input_path)
 
 
     def batch(self):
@@ -36,9 +36,6 @@ class Batcher():
             else:
                 exit(1)
 
-    def train(self, batch):
-        self.graph.run_graph(batch)
-
 if __name__ == '__main__':
     print(f"Batch size: {hp.BATCH_SIZE}")
     print(f"Padding Algorithm: {hp.PADDING_ALGORITHM}")
@@ -49,15 +46,16 @@ if __name__ == '__main__':
     batcher = Batcher()
     gen = batcher.batch()
     encoder_2d = np.empty(shape=(0, batcher.preprocess.padding_size), dtype=np.int32)
-    #decoder_matrix = np.empty(shape=(0, batcher.preprocess.padding_size + 2, batcher.embedding.embedding_size), dtype=np.int32)
-    while True:
-        s_list = list(next(gen) for _ in range(batcher.batch_size))
-        for s in s_list:
-            encoder_list = batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.add_tokens_to_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s))))
-            encoder_1d = np.array(encoder_list, dtype=np.int32).reshape(1, batcher.preprocess.padding_size)
-            encoder_2d = np.concatenate((encoder_2d, encoder_1d))
-            #decoder_array = np.array(batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.decoder_output_check_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s)))), np.int32)
-            #encoder_3d = np.concatenate((encoder_3d, encoder_2d))
-            #decoder_matrix = np.vstack((decoder_matrix, decoder_array))
-        batcher.train(encoder_2d)
+    for range in hp.NUM_EPOCHS:
+        while True:
+            s_list = list(next(gen) for _ in range(batcher.batch_size))
+            for s in s_list:
+                encoder_list = batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.add_tokens_to_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s))))
+                encoder_1d = np.array(encoder_list, dtype=np.int32).reshape(1, batcher.preprocess.padding_size)
+                encoder_2d = np.concatenate((encoder_2d, encoder_1d))
+            batcher.ae.train_batch(encoder_2d)
+        batcher.file_list = os.listdir(batcher.input_path)
+    batcher.ae.finalize_graph()
+    exit(1)
+
 
