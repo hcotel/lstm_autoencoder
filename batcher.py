@@ -45,15 +45,16 @@ if __name__ == '__main__':
     print(f"Use Self Embedding: {hp.SELF_EMBEDDING}")
     batcher = Batcher()
     gen = batcher.batch()
-    encoder_2d = np.empty(shape=(0, batcher.preprocess.padding_size), dtype=np.int32)
-    for range in hp.NUM_EPOCHS:
+    for epoch in range(hp.NUM_EPOCHS):
         while True:
             s_list = list(next(gen) for _ in range(batcher.batch_size))
+            encoder_2d = np.empty(shape=(0, batcher.preprocess.padding_size), dtype=np.int32)
             for s in s_list:
                 encoder_list = batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.add_tokens_to_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s))))
                 encoder_1d = np.array(encoder_list, dtype=np.int32).reshape(1, batcher.preprocess.padding_size)
                 encoder_2d = np.concatenate((encoder_2d, encoder_1d))
             batcher.ae.train_batch(encoder_2d)
+            print(f"Loss: {batcher.ae.current_loss}")
         batcher.file_list = os.listdir(batcher.input_path)
     batcher.ae.finalize_graph()
     exit(1)

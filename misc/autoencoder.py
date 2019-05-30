@@ -105,7 +105,7 @@ class TextAutoencoder(object):
 
         # now project the outputs to the vocabulary
         with tf.variable_scope('projection') as self.projection_scope:
-            # decoder_outputs has shape (batch, max_sentence_size, vocab_size)
+            # pred_outputs has shape (batch, max_sentence_size, vocab_size)
             self.logits = tf.layers.dense(outputs, self.vocab_size)
 
         # tensors for running a model

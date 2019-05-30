@@ -22,11 +22,9 @@ websites = "[.](com|net|org|io|gov)"
 
 class Preprocess():
     def __init__(self):
-
         self.freq_thresh = hp.VOCAB_FREQ_THRESHOLD
-
         self.padding_size = self.calculate_padding_size(hp.INPUT_PATH, hp.WEIGHTED_SOME_COEFFICIENT,
-                                                        hp.WEIGHTED_SOME_NMOST, hp.PADDING_ALGORITHM)
+                                                       hp.WEIGHTED_SOME_NMOST, hp.PADDING_ALGORITHM)
         if hp.SELF_VOCAB:
             self.create_dict_from_data(hp.INPUT_PATH)
         else:
