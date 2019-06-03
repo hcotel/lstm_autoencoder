@@ -24,17 +24,24 @@ class Batcher():
 
 
     def batch(self):
+        self.epoch = 0
         while True:
-            if self.file_list:
-                filename = random.choice(self.file_list)
-                with io.open(f'data/test/{filename}', 'r', encoding='utf8') as textfile:
-                    readcontent = textfile.read().replace(f'\n',f'.\n',1)
-                    self.file_list.remove(filename)
-                    sentences = self.preprocess.split_into_sentences(readcontent)
-                    for sentence in sentences:
-                        yield sentence
+            if self.epoch <= hp.NUM_EPOCHS:
+                if self.file_list:
+                    filename = random.choice(self.file_list)
+                    with io.open(f'data/test/{filename}', 'r', encoding='utf8') as textfile:
+                        readcontent = textfile.read().replace(f'\n',f'.\n',1)
+                        self.file_list.remove(filename)
+                        sentences = self.preprocess.split_into_sentences(readcontent)
+                        for sentence in sentences:
+                            yield sentence
+                else:
+                    print(f"File list is all read for Epoch:{self.epoch}.")
+                    self.epoch += 1
+                    self.file_list = os.listdir(self.input_path)
             else:
                 exit(1)
+
 
 if __name__ == '__main__':
     print(f"Batch size: {hp.BATCH_SIZE}")
@@ -45,7 +52,9 @@ if __name__ == '__main__':
     print(f"Use Self Embedding: {hp.SELF_EMBEDDING}")
     batcher = Batcher()
     gen = batcher.batch()
-    for epoch in range(hp.NUM_EPOCHS):
+    with tf.Session() as sess:
+        init = tf.global_variables_initializer()
+        sess.run(init)
         while True:
             s_list = list(next(gen) for _ in range(batcher.batch_size))
             encoder_2d = np.empty(shape=(0, batcher.preprocess.padding_size), dtype=np.int32)
@@ -53,10 +62,10 @@ if __name__ == '__main__':
                 encoder_list = batcher.preprocess.convert_word_list_to_indexes(batcher.preprocess.add_tokens_to_sentence(batcher.preprocess.remove_punctuations(batcher.preprocess.remove_digits(s))))
                 encoder_1d = np.array(encoder_list, dtype=np.int32).reshape(1, batcher.preprocess.padding_size)
                 encoder_2d = np.concatenate((encoder_2d, encoder_1d))
-            batcher.ae.train_batch(encoder_2d)
-            print(f"Loss: {batcher.ae.current_loss}")
-        batcher.file_list = os.listdir(batcher.input_path)
-    batcher.ae.finalize_graph()
-    exit(1)
+            batcher.ae.train_batch(sess, encoder_2d)
+            print(f"Epoch: {batcher.epoch} Loss: {batcher.ae.current_loss}")
+
+        batcher.ae.finalize_graph()
+        exit(1)
 
 

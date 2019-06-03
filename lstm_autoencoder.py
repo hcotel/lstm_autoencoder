@@ -39,7 +39,7 @@ class LSTMAutoEncoder():
         initializer = tf.glorot_normal_initializer()
         self.encoder_cell = LSTMCell(self.embedding_size, initializer=initializer, state_is_tuple=True)  # hidden_size=300
         self.decoder_cell = LSTMCell(self.embedding_size, initializer=initializer, state_is_tuple=True)
-        self.dense_layer = tf.layers.Dense(units=self.vocab_size)
+        self.dense_layer = tf.layers.Dense(units=self.vocab_size, bias_initializer=initializer, kernel_initializer=initializer)
         # Embedding
         self.embeddings = tf.Variable(tf.random_normal([self.vocab_size, self.embedding_size]))  # (vocab_size ,300)
         embedded_input = tf.nn.embedding_lookup(self.embeddings, self.input, name='embedding')  # (32,112,300)
@@ -90,21 +90,17 @@ class LSTMAutoEncoder():
         # accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
 
     def run_graph(self):
-        init = tf.global_variables_initializer()
-        self.session = tf.Session()
         self.create_placeholders()
         self.create_graph()
         self.saver = tf.train.Saver()
-        self.writer = tf.summary.FileWriter(self.filewriter_path, self.session.graph)
+        #self.writer = tf.summary.FileWriter(self.filewriter_path, self.session.graph)
         self.merged = tf.summary.merge_all()
-        self.session.run(init)
 
-    def train_batch(self, batch):
+    def train_batch(self, sess, batch):
         self.feed_dict[self.input] = batch
         self.feed_dict[self.output] = batch
-        print(self.session)
-        _, self.current_loss = self.session.run([self.train, self.loss], feed_dict=self.feed_dict)
-        self.saver.save(self.session, self.save_model_path)
+        _, self.current_loss = sess.run([self.train, self.loss], feed_dict=self.feed_dict)
+        self.saver.save(sess, self.save_model_path)
         # merged = tf.summary.merge_all()
         # summ = self.session.run(merged)
         # self.writer.add_summary(summ)
