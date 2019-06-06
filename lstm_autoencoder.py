@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import hyperparameter as hp
-from tensorflow.contrib.rnn import BasicLSTMCell
 from tensorflow.contrib.rnn import LSTMCell
 
 # tf.nn.embedding_lookup
@@ -44,23 +43,12 @@ class LSTMAutoEncoder():
         self.embeddings = tf.Variable(tf.random_normal([self.vocab_size, self.embedding_size]))  # (vocab_size ,300)
         embedded_input = tf.nn.embedding_lookup(self.embeddings, self.input, name='embedding')  # (32,112,300)
         # embedded_input = tf.nn.dropout(embedded_input)
-        print(embedded_input)
         embedded_sequence = tf.unstack(embedded_input, axis=1)  # (32,300),(32,300) 112 times ( #time_steps = sentence_length)
-        print(embedded_sequence)
         encoder_outputs, encoder_state = tf.nn.static_rnn(self.encoder_cell, embedded_sequence, dtype=tf.float32, scope='encoder')      # (32,600)
-        print(f"Encoded: {encoder_outputs}")
-        print(f"Encoder_state: {encoder_state}")
         # Decoder
         start_decoder_index = special_tokens.index(START_DECODING)
         start_decoder = tf.ones(shape=self.batch_size, dtype=tf.int32) * start_decoder_index
-        print(start_decoder)
         embedded_start_decoder = tf.nn.embedding_lookup(self.embeddings, start_decoder, name='start_decoding_embedding')    #(32,600)
-        print(f"Start Decoding: {embedded_start_decoder}")
-        #decoder_input = tf.concat([embedded_input, embedded_start_decoder], axis=1)
-        #decoder_sequence = tf.unstack(decoder_input, axis=1)
-        #print(decoder_input)
-        # decoded, _ = tf.nn.static_rnn(self.decoder_cell, embedded_start_decoder, initial_state=encoder_state,
-        #                               dtype=tf.float32, scope='decoder')
         decoder_input = embedded_start_decoder  # (32,300)
         state = encoder_state  # (32,600)
         self.pred_outputs = []
@@ -75,35 +63,27 @@ class LSTMAutoEncoder():
 
         self.logits = tf.transpose(tf.stack(self.pred_outputs), [1, 0, 2])
         self.output_one_hot = tf.one_hot(self.input, self.vocab_size)
-        print(f"logits: {self.logits}")
-        print(f"y_one_hot: {self.output_one_hot}")
 
         self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.output_one_hot, logits=self.logits))    #(32,112, vocab_size)
-        print(f"Loss: {self.loss}")
-        self.train = tf.train.AdamOptimizer().minimize(self.loss)
-        # grads = tf.gradients(self.loss, tf.trainable_variables())
-        # grads, _ = tf.clip_by_global_norm(grads, 50)  # gradient clipping
-        # grads_and_vars = list(zip(grads, tf.trainable_variables()))
-        # self.train_op = optimizer.apply_gradients(grads_and_vars)
-        # correct = tf.equal(self.decoder_output, pred)
-        # accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
-        # accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
+        tf.summary.scalar('loss', self.loss)
+        train_vars = tf.trainable_variables()
+        gradients = tf.gradients(self.loss, train_vars)
+        grads, global_norm = tf.clip_by_global_norm(gradients, clip_norm=1)
+        tf.summary.scalar('global_norm', global_norm)
+        optimizer = tf.train.AdamOptimizer(self.learning_rate)
+        self.train = optimizer.apply_gradients(zip(grads, train_vars))
+        self.merged = tf.summary.merge_all()
 
     def run_graph(self):
         self.create_placeholders()
         self.create_graph()
         self.saver = tf.train.Saver()
-        #self.writer = tf.summary.FileWriter(self.filewriter_path, self.session.graph)
-        self.merged = tf.summary.merge_all()
 
     def train_batch(self, sess, batch):
         self.feed_dict[self.input] = batch
         self.feed_dict[self.output] = batch
-        _, self.current_loss = sess.run([self.train, self.loss], feed_dict=self.feed_dict)
-        self.saver.save(sess, self.save_model_path)
-        # merged = tf.summary.merge_all()
-        # summ = self.session.run(merged)
-        # self.writer.add_summary(summ)
+        self.summary, _, self.current_loss = sess.run([self.merged, self.train, self.loss], feed_dict=self.feed_dict)
 
-    def finalize_graph(self):
+    def finalize_graph(self, sess):
+        self.saver.save(sess, self.save_model_path)
         self.writer.close()

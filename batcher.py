@@ -10,6 +10,7 @@ import hyperparameter as hp
 from embedding import Embedding
 from lstm_autoencoder import LSTMAutoEncoder
 from preprocess import Preprocess
+import time
 
 
 class Batcher():
@@ -24,22 +25,27 @@ class Batcher():
 
 
     def batch(self):
-        self.epoch = 0
+        self.epoch = 1
+        epoch_start_time = time.time()
         while True:
             if self.epoch <= hp.NUM_EPOCHS:
                 if self.file_list:
                     filename = random.choice(self.file_list)
-                    with io.open(f'data/test/{filename}', 'r', encoding='utf8') as textfile:
+                    with io.open(f'data/test/{filename}', 'r', encoding='utf8', errors='ignore') as textfile:
                         readcontent = textfile.read().replace(f'\n',f'.\n',1)
                         self.file_list.remove(filename)
                         sentences = self.preprocess.split_into_sentences(readcontent)
                         for sentence in sentences:
                             yield sentence
                 else:
-                    print(f"File list is all read for Epoch:{self.epoch}.")
+                    epoch_end_time = time.time()
+                    epoch_time = round(epoch_end_time - epoch_start_time)
+                    print(f"File list is all read for Epoch:{self.epoch} in {epoch_time} secs.")
                     self.epoch += 1
+                    epoch_start_time = time.time()
                     self.file_list = os.listdir(self.input_path)
             else:
+                self.ae.finalize_graph(sess)
                 exit(1)
 
 
@@ -53,6 +59,7 @@ if __name__ == '__main__':
     batcher = Batcher()
     gen = batcher.batch()
     with tf.Session() as sess:
+        batcher.ae.writer = tf.summary.FileWriter(hp.FILEWRITER_PATH, sess.graph, flush_secs=10)
         init = tf.global_variables_initializer()
         sess.run(init)
         while True:
@@ -64,8 +71,7 @@ if __name__ == '__main__':
                 encoder_2d = np.concatenate((encoder_2d, encoder_1d))
             batcher.ae.train_batch(sess, encoder_2d)
             print(f"Epoch: {batcher.epoch} Loss: {batcher.ae.current_loss}")
+            batcher.ae.writer.add_summary(batcher.ae.summary)
 
-        batcher.ae.finalize_graph()
-        exit(1)
 
 
